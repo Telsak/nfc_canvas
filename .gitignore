@@ -190,4 +190,9 @@ cython_debug/
 # Ignore code-workspaces
 *.code-workspace
 
+# Various files
+config.json
+
+nfc_data.json
+
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,python
