@@ -1,5 +1,6 @@
 import json
-from flask import Flask, request, jsonify, post
+from requests import post
+from flask import Flask, request, jsonify
 from canvasmagic import (
     check_canvas_token, get_course_assignments, get_student_info,
     get_course_info, set_assignment_completion
@@ -98,7 +99,6 @@ def nfc():
             if canvas_response[0] == True:
                 course_name = get_course_info(token, course_id)["name"]
                 log_webhook(
-                    facility='NFC_API', 
                     msg=f'{nfc_users[response["data"]]["name"]} : User clear lab {assignment}, course {course_name}'
                 )
                 return jsonify({"status": "mark_completed_success", "data": assignment}), 200
