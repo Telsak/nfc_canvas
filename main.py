@@ -67,7 +67,8 @@ def nfc():
     response = request.json
     token = response["token"]
 
-    if check_canvas_token(token):
+    # initial fix, due to weird error with reading the token from file
+    if token == app.config['SETTINGS']['base']['canvas']['TOKEN']:
         nfc_users = app.config['NFC_DATA']
         data = response["data"]
         if response["action"] == "check":
@@ -97,9 +98,10 @@ def nfc():
             assignment = (data["assignment"]["id"], str(data["assignment"]["points"]))
             canvas_response = set_assignment_completion(token, course_id, assignment, student_id)
             if canvas_response[0] == True:
+                print('canvas true')
                 course_name = get_course_info(token, course_id)["name"]
                 log_webhook(
-                    msg=f'{nfc_users[response["data"]]["name"]} : User clear lab {assignment}, course {course_name}'
+                    msg=f'{nfc_users[response["data"]]["name"]} : User clear lab {data["assignment"]["name"]}, course {course_name}'
                 )
                 return jsonify({"status": "mark_completed_success", "data": assignment}), 200
             else:
