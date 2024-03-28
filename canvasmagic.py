@@ -18,7 +18,7 @@ def check_canvas_token(token):
     except:
         return False
 
-def get_course_assignments(course_id, token):
+def get_course_assignments(token, course_id):
     """
     Retrieve a list of assignments for a specific course, excluding any with 'kursvärdering' in the name.
 
@@ -41,6 +41,7 @@ def get_course_assignments(course_id, token):
 def get_student_info(token, course_id, login_id):
     """
     Retrieve the student ID associated with a specific login ID for a course.
+    Used to get student info before NFC card registration
 
     Args:
         token (str): The Canvas API token for authentication.

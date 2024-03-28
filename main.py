@@ -1,8 +1,8 @@
 import json
 from requests import post
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, Blueprint
 from canvasmagic import (
-    check_canvas_token, get_course_assignments, get_student_info,
+    get_course_assignments, get_student_info, 
     get_course_info, set_assignment_completion
 )
 
@@ -30,9 +30,9 @@ def read_nfc_data(file_path=NFC_DATA_FILE):
         with open(file_path, 'r') as nfc_file:
             return json.load(nfc_file)
     except FileNotFoundError:
-        return dict()
+        return {}
     except json.JSONDecodeError as e:
-        return dict()
+        return {}
 
 def write_nfc_data(nfc_data, file_path=NFC_DATA_FILE):
     """Writes NFC data to a JSON file.
@@ -89,7 +89,7 @@ def nfc():
                 return jsonify({"status": "register_failed", "data": nfc_users[data]}), 500
         elif response["action"] == "get_labs":
             course_id = response["data"]
-            assignments = get_course_assignments(course_id, token)
+            assignments = get_course_assignments(token, course_id)
             return jsonify({"status": "query_success", "data": assignments}), 200
         elif response["action"] == "mark_completed":
             data = response["payload"]
