@@ -4,6 +4,26 @@ from datetime import datetime
 from flask import request
 
 def register_token(token, app, bcrypt, config_lock):
+    """Registers or updates a token in the application's configuration.
+
+    This function generates a hash for the given token, checks if it already
+    exists in the app's configuration, and accordingly updates the last verified
+    time or registers a new token. It only registers tokens not associated with
+    student emails and saves the updated configuration back to the file.
+
+    Args:
+        token (str): The token to be registered or updated.
+        app (Flask): The Flask application instance containing the configuration.
+        bcrypt (Bcrypt): An instance of Flask-Bcrypt for password hashing.
+        config_lock (threading.RLock): A lock to ensure thread-safe operations on
+            the app's configuration.
+
+    Returns:
+        str: 'registered' if a new token was successfully added,
+             'updated' if an existing token's last verified time was updated,
+             False if the token is associated with a student email or if the
+             profile response status code is not 200.
+    """
     token_hash = bcrypt.generate_password_hash(token).decode("utf-8")
 
     with config_lock:
@@ -55,6 +75,5 @@ def check_token(token, app, bcrypt):
     if len(stored_tokens) >= 1:
         for field in stored_tokens:
             if bcrypt.check_password_hash(field["hash"], token):
-                print("token exists")
                 return True
     return False
