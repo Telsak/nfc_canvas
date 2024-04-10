@@ -2,6 +2,21 @@ import requests
 
 base = 'https://hv.instructure.com/api/v1/'
 
+def get_user_profile(token):
+    """
+    Retrieves the profile for the current user represented by the token.
+
+    Args:
+        token (str): The Canvas API token for authentication.
+
+    Returns:
+        requests object: A requests response object containing the user info
+        if there exists a user for that particular canvas token.
+    """
+    url = f'{base}users/self/profile'
+    headers = {"Authorization": f"Bearer {token}"}
+    return requests.get(url, headers=headers)
+
 def get_course_assignments(course_id, token):
     """
     Retrieve a list of assignments for a specific course, excluding any with 'kursvärdering' in the name.
