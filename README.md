@@ -7,5 +7,5 @@ flowchart TD
     B -- Yes --> C[Do not deploy!];
     B -- No --> D[Run deploy.sh to deploy!];
     C ---> E[Enjoy your weekend!];
-    E ---> E[Enjoy your weekend!];
+    D ---> E[Enjoy your weekend!];
 ```
