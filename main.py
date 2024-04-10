@@ -1,17 +1,18 @@
-from requests import post
-from flask import Flask, request, jsonify
-from flask_bcrypt import Bcrypt
+from authmagic import register_token, check_token, get_token_from_header
 from canvasmagic import (
     get_course_assignments, get_student_info, get_course_info, 
     set_assignment_completion
 )
 from config import read_config, read_nfc_data, write_nfc_data
-from authmagic import register_token, check_token
-from threading import Lock
+from flask import Flask, request, jsonify
+from flask_bcrypt import Bcrypt
+from nfcmagic import get_userinfo
+from requests import post
+from threading import RLock
 
 app = Flask(__name__)
 bcrypt = Bcrypt(app)
-config_lock = Lock()
+config_lock = RLock()
 
 app.config['SETTINGS'] = read_config()
 app.config['NFC_DATA'] = read_nfc_data(app.config['SETTINGS']['base']['nfc_file'])
@@ -62,21 +63,51 @@ def nfc():
         else:
             return jsonify({"status": "forbidden", "data": "Invalid Action"}), 400
     else:
-        return jsonify({"status": "forbidden", "data": "Invalid Token Provided"}), 403
+        return jsonify({"status": "forbidden", "data": "Invalid Token Provided"}), 401
 
 @app.route("/check", methods=['POST'])
 def check():
-    '''
-    if response["action"] == "check":
-                if data in nfc_users:
-                    return jsonify({"status": "check_success", "data": nfc_users[data]}), 200
-                else:
-                    return jsonify({"status": "success", "data": "Unknown ID"}), 200
-    '''
+    """Checks if a NFC ID matches a registered user based on a valid token.
+
+    This endpoint processes POST requests containing a JSON payload with a 
+    "token" field and an "nfc_id". It first verifies the validity of the 
+    provided token. If valid, it proceeds to check if the given NFC ID matches
+    a registered user by calling `get_userinfo`.
+    
+    If a matching user is found, it returns a success status with the user's 
+    username and full name. If no matching user is found, it still returns a 
+    success status but with a message stating that no matching user was found.
+    If the token provided is invalid, it returns a failure status.
+    If the request is missing a "token" field, it returns a forbidden status.
+
+    Returns:
+        A Flask `jsonify` response object with a HTTP status code.  
+        The HTTP status codes are 200 for successes, 401 for invalid token, 
+        and 400 for missing token field.
+    """    
     response = request.json
-
-
-
+    token = get_token_from_header()
+    if token and check_token(token, app, bcrypt):
+        status, userinfo = get_userinfo(app, response["nfc_id"])
+        # status == user found true/false
+        if status:
+            return jsonify({
+                "status": "success", 
+                "data": {
+                    "username": userinfo[0], 
+                    "full_name": userinfo[1]["full_name"]
+                }
+            }), 200
+        else:
+            return jsonify({
+                "status": "success", 
+                "message": "No matching user found."
+            }), 200
+    else:
+        return jsonify({
+            "status": "failed", 
+            "data": "Invalid token provided"
+        }), 401
 
 @app.route("/register", methods=['POST'])
 def register():
@@ -92,22 +123,34 @@ def register():
       failure status and a 400 Bad Request status code.
 
     Returns:
-        A Flask `jsonify` response object with two keys: "status" and "data". The "status" key
-        indicates the outcome ("register_success" or "failed"), and the "data" key provides
-        a message about the registration attempt. The HTTP status code reflects the outcome: 200 for
-        success, 401 for an invalid token, and 400 for a missing token field.
+        A Flask `jsonify` response object with a HTTP status code.
+        The HTTP status code are 200 for success, 401 for an invalid token, 
+        and 400 for a missing token field.
     """
-    response = request.json
-    if "token" in response:
-        if check_token(response, app, bcrypt):
-            return jsonify({    "status": "failed", "data": "Failed registration, token invalid."}), 401
+    token = get_token_from_header()
+    if token:
+        print("token exists")
+        response = register_token(token, app, bcrypt, config_lock)
+        if response == "registered":
+            return jsonify({
+                    "status": "success", 
+                    "message": "Token successfully registered."
+                }), 200
+        elif response == "updated":
+            return jsonify({
+                "status": "success", 
+                "message": "Token already registered; last verified timestamp updated."
+            }), 200
         else:
-            if register_token(response, app, bcrypt, config_lock):
-                return jsonify({"status": "register_success", "data": "Successful registration, token added."}), 200
-            else:
-                return jsonify({"status": "failed", "data": "Failed registration, token invalid."}), 401
+            return jsonify({
+                "status": "failed", 
+                "message": "Failed registration, token invalid or user profile could not be retrieved."
+            }), 401
     else:
-        return jsonify({"status": "failed", "data": "Failed registration, missing token field."}), 400
+        return jsonify({
+            "status": "failed", 
+            "data": "Failed action, missing token field."
+        }), 400
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
