@@ -89,7 +89,7 @@ def check():
     token = get_token_from_header()
     if token and check_token(token, app, bcrypt):
         status, userinfo = get_userinfo(app, response["nfc_id"])
-        # status == user found true/false
+        # status = user found true/false
         if status:
             return jsonify({
                 "status": "success", 
@@ -109,8 +109,8 @@ def check():
             "data": "Invalid token provided"
         }), 401
 
-@app.route("/register", methods=['POST'])
-def register():
+@app.route("/register/token", methods=['POST'])
+def register_token_route():
     """Handles the registration process by adding a new token.
 
     This endpoint processes POST requests with a "token" in the JSON payload.
@@ -129,7 +129,6 @@ def register():
     """
     token = get_token_from_header()
     if token:
-        print("token exists")
         response = register_token(token, app, bcrypt, config_lock)
         if response == "registered":
             return jsonify({
@@ -151,6 +150,15 @@ def register():
             "status": "failed", 
             "data": "Failed action, missing token field."
         }), 400
+
+@app.route("/register/nfcid", methods=["POST"])
+def register_nfcid_route():
+    token = get_token_from_header()
+        if token:
+            
+            response = register_nfcid(token, nfc_id, app, bcrypt, config_lock)
+            
+
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
