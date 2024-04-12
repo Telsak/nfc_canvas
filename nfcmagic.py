@@ -19,4 +19,17 @@ def get_userinfo(app, nfc_id):
     for username, details in app.config['NFC_DATA'].items():
         if details["nfc_id"] == nfc_id:
             return True, (username, details)
-    return False, (None, None) 
+    return False, (None, None)
+
+def register_nfcid(token, json_payload, app, bcrypt, config_lock):
+    # json_payload = (response["nfc_id"], response["user_id"], response["course_id"]) från main.py
+    # check if the login_id already exists in the datastore
+    # yes -> update the login_id with the new nfc_id if the nfc_id has changed
+    # no -> do a canvas lookup on a course with the login_id to get the
+    #       specific student_id and full name in canvas.
+    # encrypt the student_id with cryptograhy.fernet (keep a key in a locked-down file)
+    # save the nfc_id, full_name, f_student_id in nfc_users.json
+
+    nfc_id, user_id, course_id = json_payload
+    
+    

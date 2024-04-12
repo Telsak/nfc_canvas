@@ -70,6 +70,20 @@ def get_token_from_header():
     return None
 
 def check_token(token, app, bcrypt):
+    """Checks if a given token is valid based on stored hashed versions.
+
+    Iterates through a list of stored hashed tokens and uses bcrypt to 
+    verify if any hash matches the provided token.
+
+    Args:
+        token (str): The token to verify.
+        app (Flask): The Flask application object containing configuration.
+        bcrypt (Flask-Bcrypt): The Flask-Bcrypt extension instance.
+
+    Returns:
+        bool: True if the token matches any hashed token stored,
+              False otherwise.
+    """
     stored_tokens = app.config["SETTINGS"]["base"]["canvas"]["tokens"]
 
     if len(stored_tokens) >= 1:

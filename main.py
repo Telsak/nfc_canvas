@@ -154,20 +154,30 @@ def register_token_route():
 @app.route("/register/nfcid", methods=["POST"])
 def register_nfcid_route():
     token = get_token_from_header()
-    if token:
+    if token and check_token(token, app, bcrypt):
         # logic for registering a nfcid (serial no. of mifare card)
         # take the login_id, a course_id and the nfc_id
         # the course_id is so we potentially can look up the students info
         # in a course the teacher can see.
-        # check if the login_id already exists in the datastore
-        # yes -> update the login_id with the new nfc_id if the nfc_id has changed
-        # no -> do a canvas lookup on a course with the login_id to get the
-        #       specific student_id and full name in canvas.
-        # encrypt the student_id with cryptograhy.fernet (keep a key in a locked-down file)
-        # save the nfc_id, full_name, f_student_id in nfc_users.json
-
-        response = register_nfcid(token, nfc_id, app, bcrypt, config_lock)
-    
+        json_payload = (response["nfc_id"], response["user_id"], response["course_id"])
+        # here I want a validation check on the body before route logic
+        response = register_nfcid(token, json_payload, app, bcrypt, config_lock)
+        
+        if response == "registered":
+            return jsonify({
+                    "status": "success", 
+                    "message": "NFC card successfully registered."
+                }), 200
+        elif response == "updated":
+            return jsonify({
+                "status": "success", 
+                "message": "NFC card successfully updated on user."
+            }), 200
+        else:
+            return jsonify({
+                "status": "failed", 
+                "message": "Failed registration, token invalid or user profile could not be retrieved."
+            }), 401    
     else:
         return jsonify({
             "status": "failed", 
