@@ -14,7 +14,8 @@ def read_config():
     """
     try:
         with open('config.json', 'r') as file:
-            return json.load(file)
+            data = json.load(file)
+        return data
     except:
         return { "base": {
                     "logging": {
@@ -76,7 +77,8 @@ def read_nfc_data(file_path):
     """
     try:
         with open(file_path, 'r') as nfc_file:
-            return json.load(nfc_file)
+            data = json.load(nfc_file)
+        return data
     except FileNotFoundError:
         return dict()
     except json.JSONDecodeError as e:
@@ -101,7 +103,7 @@ def write_nfc_data(nfc_data, file_path):
     try:
         with open(file_path, 'w') as file:
             json.dump(nfc_data, file, indent=2)
-            return True
-    except IOError as e:
-        return False
+        return True, None
+    except Exception as e:
+        return False, f'Error saving NFC data: {e}'
 

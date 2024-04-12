@@ -6,7 +6,7 @@ from canvasmagic import (
 from config import read_config, read_nfc_data, write_nfc_data
 from flask import Flask, request, jsonify
 from flask_bcrypt import Bcrypt
-from nfcmagic import get_userinfo
+from nfcmagic import check_nfcid, register_nfc
 from requests import post
 from threading import RLock
 
@@ -72,7 +72,7 @@ def check():
     This endpoint processes POST requests containing a JSON payload with a 
     "token" field and an "nfc_id". It first verifies the validity of the 
     provided token. If valid, it proceeds to check if the given NFC ID matches
-    a registered user by calling `get_userinfo`.
+    a registered user by calling `check_nfcid`.
     
     If a matching user is found, it returns a success status with the user's 
     username and full name. If no matching user is found, it still returns a 
@@ -88,14 +88,14 @@ def check():
     response = request.json
     token = get_token_from_header()
     if token and check_token(token, app, bcrypt):
-        status, userinfo = get_userinfo(app, response["nfc_id"])
+        status, username, details = check_nfcid(app, response["nfc_id"])
         # status = user found true/false
         if status:
             return jsonify({
                 "status": "success", 
                 "data": {
-                    "username": userinfo[0], 
-                    "full_name": userinfo[1]["full_name"]
+                    "username": username,
+                    "full_name": details["full_name"]
                 }
             }), 200
         else:
@@ -151,8 +151,9 @@ def register_token_route():
             "data": "Failed action, missing token field."
         }), 400
 
-@app.route("/register/nfcid", methods=["POST"])
-def register_nfcid_route():
+@app.route("/register/nfc", methods=["POST"])
+def register_nfc_route():
+    response = request.json
     token = get_token_from_header()
     if token and check_token(token, app, bcrypt):
         # logic for registering a nfcid (serial no. of mifare card)
@@ -161,8 +162,8 @@ def register_nfcid_route():
         # in a course the teacher can see.
         json_payload = (response["nfc_id"], response["user_id"], response["course_id"])
         # here I want a validation check on the body before route logic
-        response = register_nfcid(token, json_payload, app, bcrypt, config_lock)
-        
+        response, data = register_nfc(token, json_payload, app, bcrypt, config_lock)
+
         if response == "registered":
             return jsonify({
                     "status": "success", 
@@ -173,11 +174,26 @@ def register_nfcid_route():
                 "status": "success", 
                 "message": "NFC card successfully updated on user."
             }), 200
+        elif response == "conflict":
+            return jsonify({
+                "status": "failed",
+                "message": "This NFC id is already registered with a different user ID.",
+                "current_association": {
+                    "user_id": data[0],
+                    "full_name": data[1],
+                    "nfc_id": data[2]
+                }
+            }), 409
+        elif response == "error":
+            return jsonify({
+                "status": "error", 
+                "message": "Failed to save the NFC ID due to a server error. Please try again later."
+            }), 500
         else:
             return jsonify({
                 "status": "failed", 
                 "message": "Failed registration, token invalid or user profile could not be retrieved."
-            }), 401    
+            }), 401
     else:
         return jsonify({
             "status": "failed", 

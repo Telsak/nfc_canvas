@@ -53,6 +53,7 @@ def get_student_info(token, course_id, login_id):
     headers = {"Authorization": f"Bearer {token}"}
     payload = {"search_term": f"{login_id}"}
     response = requests.get(url, data=payload, headers=headers).json()
+    print(response[0]["id"], response[0]["name"])
     return (response[0]["id"], response[0]["name"])
 
 def get_course_info(token, course_id):
