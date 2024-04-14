@@ -19,23 +19,34 @@ def get_user_profile(token):
 
 def get_course_assignments(course_id, token):
     """
-    Retrieve a list of assignments for a specific course, excluding any with 'kursvärdering' in the name.
+    Retrieve a list of assignments for a specific course, excluding any 
+    with 'kursvärdering' in the name.
 
     Args:
         course_id (str): The identifier for the Canvas course.
         token (str): The Canvas API token for authentication.
 
     Returns:
-        list: A list of tuples containing the assignment name, id, and points possible.
+        list: A list of dicts containing the assignment id, name, and 
+              points possible.
     """
     url = f'{base}courses/{course_id}/assignments'
     headers = {"Authorization": f"Bearer {token}"}
-    response = requests.get(url, headers=headers).json()
-    assignments = []
-    for assignment in response:
-        if 'kursvärdering' not in assignment['name'].lower():
-            assignments.append((assignment['name'], assignment['id'], assignment['points_possible']))
-    return assignments
+    response = requests.get(url, headers=headers)
+    if response.status_code == 200:
+        assignments = []
+        for assignment in response.json():
+            if 'kursvärdering' not in assignment['name'].lower():
+                assignments.append(
+                    {
+                        "id": assignment["id"], 
+                        "name": assignment["name"], 
+                        "points": assignment["points_possible"]
+                    }
+                )
+        return True, assignments
+    else:
+        return False, response.status_code
 
 def get_student_info(token, course_id, login_id):
     """
@@ -53,8 +64,7 @@ def get_student_info(token, course_id, login_id):
     headers = {"Authorization": f"Bearer {token}"}
     payload = {"search_term": f"{login_id}"}
     response = requests.get(url, data=payload, headers=headers).json()
-    print(response[0]["id"], response[0]["name"])
-    return (response[0]["id"], response[0]["name"])
+    return (response[0]["id"], response[0]["name"], login_id)
 
 def get_course_info(token, course_id):
     """

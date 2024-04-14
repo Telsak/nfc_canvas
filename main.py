@@ -31,22 +31,7 @@ def nfc():
         nfc_users = app.config['NFC_DATA']
         data = response["data"]
         
-        if response["action"] == "register":
-            full_name = get_student_info(token, response["payload"][1], response["payload"][0])[1]
-            payload = {
-                "login_id": response["payload"][0],
-                "name": full_name
-            }
-            app.config['NFC_DATA'][data] = payload
-            if write_nfc_data(app.config['NFC_DATA'], app.config['SETTINGS']['base']['nfc_file']):
-                return jsonify({"status": "register_success", "data": nfc_users[data]}), 200
-            else:
-                return jsonify({"status": "register_failed", "data": nfc_users[data]}), 500
-        elif response["action"] == "get_labs":
-            course_id = response["data"]
-            assignments = get_course_assignments(course_id, token)
-            return jsonify({"status": "query_success", "data": assignments}), 200
-        elif response["action"] == "mark_completed":
+        if response["action"] == "mark_completed":
             data = response["payload"]
             course_id = data["course"]
             student_id = get_student_info(token, course_id, nfc_users[response["data"]]["login_id"])[0]
@@ -65,8 +50,8 @@ def nfc():
     else:
         return jsonify({"status": "forbidden", "data": "Invalid Token Provided"}), 401
 
-@app.route("/check", methods=['POST'])
-def check():
+@app.route("/check/nfc/<nfc_id>", methods=['GET'])
+def check_nfcid_route(nfc_id):
     """Checks if a NFC ID matches a registered user based on a valid token.
 
     This endpoint processes POST requests containing a JSON payload with a 
@@ -84,18 +69,18 @@ def check():
         A Flask `jsonify` response object with a HTTP status code.  
         The HTTP status codes are 200 for successes, 401 for invalid token, 
         and 400 for missing token field.
-    """    
-    response = request.json
+    """
     token = get_token_from_header()
     if token and check_token(token, app, bcrypt):
-        status, username, details = check_nfcid(app, response["nfc_id"])
+        status, username, details = check_nfcid(app, nfc_id)
         # status = user found true/false
         if status:
             return jsonify({
                 "status": "success", 
                 "data": {
-                    "username": username,
-                    "full_name": details["full_name"]
+                    "login_id": username,
+                    "full_name": details["full_name"],
+                    "canvas_id": details["canvas_id"]
                 }
             }), 200
         else:
@@ -108,6 +93,27 @@ def check():
             "status": "failed", 
             "data": "Invalid token provided"
         }), 401
+
+@app.route("/check/labs/<course_id>", methods=['GET'])
+def check_labs_route(course_id):
+    token = get_token_from_header()
+    if token and check_token(token, app, bcrypt):
+        state, data = get_course_assignments(course_id, token)
+        if state:
+            return jsonify({
+                    "status": "success", 
+                    "data": data
+                }), 200
+        else:
+            return jsonify({
+            "status": "failed", 
+            "data": "An error occured when processing your request."
+        }), data
+    else:
+        return jsonify({
+            "status": "failed", 
+            "data": "Invalid token provided"
+        }), 401  
 
 @app.route("/register/token", methods=['POST'])
 def register_token_route():
@@ -157,13 +163,10 @@ def register_nfc_route():
     token = get_token_from_header()
     if token and check_token(token, app, bcrypt):
         # logic for registering a nfcid (serial no. of mifare card)
-        # take the login_id, a course_id and the nfc_id
-        # the course_id is so we potentially can look up the students info
-        # in a course the teacher can see.
-        json_payload = (response["nfc_id"], response["user_id"], response["course_id"])
+        json_payload = (response["nfc_id"], response["login_id"], response["course_id"])
         # here I want a validation check on the body before route logic
-        response, data = register_nfc(token, json_payload, app, bcrypt, config_lock)
 
+        response, data = register_nfc(token, json_payload, app, config_lock)
         if response == "registered":
             return jsonify({
                     "status": "success", 
@@ -177,9 +180,9 @@ def register_nfc_route():
         elif response == "conflict":
             return jsonify({
                 "status": "failed",
-                "message": "This NFC id is already registered with a different user ID.",
+                "message": "This NFC id is already registered.",
                 "current_association": {
-                    "user_id": data[0],
+                    "login_id": data[0],
                     "full_name": data[1],
                     "nfc_id": data[2]
                 }
