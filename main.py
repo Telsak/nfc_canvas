@@ -2,8 +2,8 @@ import json
 from requests import post
 from flask import Flask, request, jsonify
 from canvasmagic import (
-    check_canvas_token, get_course_assignments, get_student_info,
-    get_course_info, set_assignment_completion
+    get_course_assignments, get_student_info, get_course_info, 
+    set_assignment_completion
 )
 
 app = Flask(__name__)
@@ -68,7 +68,7 @@ def nfc():
     token = response["token"]
 
     # initial fix, due to weird error with reading the token from file
-    if token == app.config['SETTINGS']['base']['canvas']['TOKEN']:
+    if token in app.config['SETTINGS']['base']['canvas']['TOKEN']:
         nfc_users = app.config['NFC_DATA']
         data = response["data"]
         if response["action"] == "check":

@@ -2,22 +2,6 @@ import requests
 
 base = 'https://hv.instructure.com/api/v1/'
 
-def check_canvas_token(token):
-    """
-    Check if the provided Canvas API token matches the one stored in the `canvas.crd` file.
-
-    Args:
-        token (str): The Canvas API token to verify.
-
-    Returns:
-        bool: True if the token matches, False otherwise.
-    """
-    try:
-        with open('canvas.crd') as file:
-            return token == file.read()
-    except:
-        return False
-
 def get_course_assignments(course_id, token):
     """
     Retrieve a list of assignments for a specific course, excluding any with 'kursvärdering' in the name.
