@@ -22,6 +22,22 @@ def get_course_assignments(course_id, token):
             assignments.append((assignment['name'], assignment['id'], assignment['points_possible']))
     return assignments
 
+def get_token_status(token: str) -> bool:
+    """
+    Attempt to fetch a list of the token-holders courses.
+    Any 
+    
+    """
+    url = f'{base}/courses'
+    headers = {"Authorization": f"Bearer {token}"}
+    payload = {"enrollment_type": "teacher"}
+    response = requests.get(url, data=payload, headers=headers).json()
+    try:
+        rlen = len(response)
+        return rlen
+    except:
+        return False
+
 def get_student_info(token, course_id, login_id):
     """
     Retrieve the student ID associated with a specific login ID for a course.

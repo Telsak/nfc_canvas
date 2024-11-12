@@ -3,7 +3,7 @@ from requests import post
 from flask import Flask, request, jsonify
 from canvasmagic import (
     get_course_assignments, get_student_info, get_course_info, 
-    set_assignment_completion
+    set_assignment_completion, get_token_status
 )
 
 app = Flask(__name__)
@@ -13,7 +13,7 @@ def read_config():
     with open('config.json', 'r') as file:
         return json.load(file)
 
-def read_nfc_data(file_path=NFC_DATA_FILE):
+def read_nfc_data(file_path=NFC_DATA_FILE) -> dict:
     """Reads NFC data from a JSON file.
 
     Args:
@@ -66,8 +66,6 @@ app.config['NFC_DATA'] = read_nfc_data()
 def nfc():
     response = request.json
     token = response["token"]
-
-    # initial fix, due to weird error with reading the token from file
     if token in app.config['SETTINGS']['base']['canvas']['TOKEN']:
         nfc_users = app.config['NFC_DATA']
         data = response["data"]
@@ -76,6 +74,12 @@ def nfc():
                 return jsonify({"status": "check_success", "data": nfc_users[data]}), 200
             else:
                 return jsonify({"status": "success", "data": "Unknown ID"}), 200
+        elif response["action"] == "verify":
+            result = get_token_status(token)
+            if result >= 1:
+                return jsonify({"status": "valid", "data": f'{result} courses'}), 200
+            else:
+                return jsonify({"status": "invalid", "data": "no courses or invalid key"}), 200
         elif response["action"] == "register":
             full_name = get_student_info(token, response["payload"][1], response["payload"][0])[1]
             payload = {
