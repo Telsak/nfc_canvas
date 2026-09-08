@@ -2,7 +2,7 @@ import requests
 
 base = 'https://hv.instructure.com/api/v1/'
 
-def get_course_assignments(course_id, token):
+def get_course_assignments(course_id: str, token:str) -> list:
     """
     Retrieve a list of assignments for a specific course, excluding any with 'kursvärdering' in the name.
 
@@ -11,7 +11,7 @@ def get_course_assignments(course_id, token):
         token (str): The Canvas API token for authentication.
 
     Returns:
-        list: A list of tuples containing the assignment name, id, and points possible.
+        assignments: A list of tuples containing the assignment name, id, and points possible.
     """
     url = f'{base}courses/{course_id}/assignments'
     headers = {"Authorization": f"Bearer {token}"}

@@ -21,10 +21,8 @@ def read_nfc_data(file_path=NFC_DATA_FILE) -> dict:
 
     Returns:
         A tuple containing:
-        - A boolean indicating the success status of the operation.
         - A dictionary with the contents read from the file, or an empty dict
           if an error occurs.
-        - A string message indicating the result of the operation.
     """
     try:
         with open(file_path, 'r') as nfc_file:
@@ -42,9 +40,7 @@ def write_nfc_data(nfc_data, file_path=NFC_DATA_FILE):
         file_path: A string path to the JSON file to be written.
 
     Returns:
-        A tuple containing:
         - A boolean indicating the success status of the write operation.
-        - A string message indicating the result of the operation.
     """
     try:
         with open(file_path, 'w') as file:
