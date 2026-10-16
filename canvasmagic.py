@@ -25,7 +25,13 @@ def get_course_assignments(course_id: str, token:str) -> list:
 def get_token_status(token: str) -> bool:
     """
     Attempt to fetch a list of the token-holders courses.
-    Any 
+    Any invalid token will fail this request.
+
+    Args:
+        token (str): The Canvas API token for authentication.
+    
+    Returns:
+        bool: Access with token success or failure (True/False)
     
     """
     url = f'{base}/courses'
@@ -38,7 +44,7 @@ def get_token_status(token: str) -> bool:
     except:
         return False
 
-def get_student_info(token, course_id, login_id):
+def get_student_info(token: str, course_id:str , login_id:str) -> tuple:
     """
     Retrieve the student ID associated with a specific login ID for a course.
 
@@ -56,13 +62,13 @@ def get_student_info(token, course_id, login_id):
     response = requests.get(url, data=payload, headers=headers).json()
     return (response[0]["id"], response[0]["name"])
 
-def get_course_info(token, course_id):
+def get_course_info(token: str, course_id: str) -> dict:
     """
     Retrieve information about a specific Canvas course by course ID.
 
     Args:
         token (str): The API token for authentication.
-        course_id (str or int): The identifier of the course to retrieve information for.
+        course_id (str): The identifier of the course to retrieve information for.
 
     Returns:
         dict: A dictionary containing the course information in JSON format.
@@ -71,6 +77,22 @@ def get_course_info(token, course_id):
     headers = {"Authorization": f"Bearer {token}"}
     response = requests.get(url, headers=headers).json()
     return response
+
+def get_favorites(token: str) -> list:
+    '''
+    write a nice docstring for get_favorites
+    '''
+
+    url = f"{base}users/self/favorites/courses"
+    headers = {"Authorization": f"Bearer {token}"}
+    response = requests.get(url, headers=headers).json()
+    
+    course_info = []
+    for i in response:
+        if i['enrollments'][0]['type'] == 'teacher' and None != i["start_at"]:
+            course_info.append(f'{i["id"]}:{i["name"]}:{str(i["start_at"])[:10]}')
+    return course_info
+
 
 def set_assignment_completion(token, course_id, assignment, student_id):
     """

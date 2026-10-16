@@ -1,13 +1,32 @@
 import json
 from requests import post
+import datetime as dt
 from flask import Flask, request, jsonify
 from canvasmagic import (
     get_course_assignments, get_student_info, get_course_info, 
-    set_assignment_completion, get_token_status
+    set_assignment_completion, get_token_status, get_favorites
 )
 
 app = Flask(__name__)
-NFC_DATA_FILE = 'nfc_data.json'
+NFC_DATA_FILE = 'nfc_data.json'  
+
+def is_current_course(datestring):
+    y,m,d = [int(x) for x in datestring.split('-')]
+    now = dt.datetime.now()
+    course_date = dt.datetime(y,m,d)
+    cutoff = now - dt.timedelta(13*7)
+    return cutoff <= course_date and course_date <= now
+
+def filter_current_favorite_courses(favorites):
+    final = []
+    for course in favorites:
+        course_id, description, date = course.split(':')
+        description = description.split()
+        period = description[-2]
+        course_code = description[-1]
+        if date != 'None' and is_current_course(date):
+            final.append([course_id, course_code, period])
+    return final
 
 def read_config():
     with open('config.json', 'r') as file:
@@ -110,6 +129,16 @@ def nfc():
             return jsonify({"status": "forbidden", "data": "Invalid Action"}), 400
     else:
         return jsonify({"status": "forbidden", "data": "Invalid Token Provided"}), 403
+
+@app.route("/favorites", methods=['GET'])
+def nfc_favorites():
+    token = request.args.get('access_token')
+    if token in app.config['SETTINGS']['base']['canvas']['TOKEN']:
+        user_favorites = get_favorites(token)
+        return_favorites = filter_current_favorite_courses(user_favorites)
+        return {"status": "success", "data": return_favorites}, 200
+    else:
+        return {"status": "forbidden", "data": "Invalid Action"}, 401
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0')
